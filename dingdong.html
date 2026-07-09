@@ -1989,6 +1989,36 @@ function injectFixes(){
     /* 확인 버튼은 멤버 선택 화면에서만 노출 (정보 입력/미니 단계에선 숨김) */
     #app .confirm-btn{display:none!important;}
     #app aside.ready:not(.mini) .confirm-btn{display:block!important;}
+    /* 확정 모달 radius 16 */
+    #app .modal{border-radius:16px!important;}
+    /* 요일 헤더: 요일+날짜를 flex 로 묶어 폰트와 무관하게 정확히 중앙정렬 */
+    #app .dayhead .d{display:flex!important;align-items:center;justify-content:center;gap:6px;}
+    #app .dayhead .d b{margin-left:0!important;}
+    /* 요약 배너와 '참석자를 알려주세요' 제목 사이 간격 확보 (3번째 이미지처럼) */
+    #app aside.ready #peopleArea::before{margin-top:24px!important;}
+    /* 다른 챕터 검색창 */
+    #app #memSearch{margin:4px 0 12px!important;}
+    /* 띵동봇(슬랙) 알림 카드 */
+    #app .slack-notif{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.96);opacity:0;pointer-events:none;width:400px;background:#fff;border-radius:16px;padding:22px 22px 20px;z-index:21;box-shadow:0 30px 70px rgba(37,37,45,.3);transition:opacity .25s,transform .25s cubic-bezier(.3,1.2,.5,1);}
+    #app .slack-notif.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
+    #app .slack-notif .sn-head{display:flex;align-items:center;gap:7px;}
+    #app .slack-notif .sn-ava{width:34px;height:34px;border-radius:9px;background:#4A154B;display:flex;align-items:center;justify-content:center;font-size:18px;}
+    #app .slack-notif .sn-name{font-size:15px;font-weight:800;color:#191F28;letter-spacing:-.2px;}
+    #app .slack-notif .sn-tag{font-size:10px;font-weight:700;color:#6B7684;background:#EEF1F4;border-radius:4px;padding:1px 5px;}
+    #app .slack-notif .sn-time{font-size:12px;font-weight:500;color:#8B95A1;}
+    #app .slack-notif .sn-msg{font-size:15px;font-weight:600;color:#191F28;line-height:1.5;margin-top:14px;letter-spacing:-.2px;}
+    #app .slack-notif .sn-msg b{font-weight:800;color:#3182F6;}
+    #app .slack-notif .sn-card{background:#F7F8FA;border-radius:12px;padding:14px 15px;margin-top:12px;}
+    #app .slack-notif .sn-title{font-size:15px;font-weight:800;color:#191F28;letter-spacing:-.2px;}
+    #app .slack-notif .sn-when{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#4E5968;margin-top:7px;}
+    #app .slack-notif .sn-when .chip-icon{width:18px;height:18px;}
+    #app .slack-notif .sn-avas{display:flex;margin-top:11px;}
+    #app .slack-notif .sn-avas span{width:26px;height:26px;border-radius:8px;background:#EFF2F5;border:2px solid #fff;margin-left:-6px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+    #app .slack-notif .sn-avas span:first-child{margin-left:0;}
+    #app .slack-notif .sn-avas span img{width:16px;height:16px;}
+    #app .slack-notif .sn-note{font-size:13px;font-weight:600;color:#00A661;background:#E6F6EF;border-radius:10px;padding:10px 12px;margin-top:12px;line-height:1.45;}
+    #app .slack-notif .sn-btn{width:100%;margin-top:16px;border:0;border-radius:14px;background:#3182F6;color:#fff;font-family:inherit;font-size:15px;font-weight:700;padding:14px 0;cursor:pointer;transition:transform .12s;}
+    #app .slack-notif .sn-btn:active{transform:scale(.98);}
   `;
   document.head.appendChild(s);
 }
@@ -2155,10 +2185,11 @@ function renderPool(){
   const host=P('me');
   let list=PEOPLE.filter(p=>!p.me);
   if(memTab==='team')list=list.filter(p=>p.team==='my');
-  else if(memTab==='chapter')list=list.filter(p=>p.team==='Place');
   else{
+    // 다른 챕터: 검색어가 있으면 이름/팀/설명으로 전체 검색, 없으면 다른 챕터(Place) 기본 노출
     const q=memQ.trim().toLowerCase();
-    list=q?list.filter(p=>p.nm.toLowerCase().includes(q)||p.team.toLowerCase().includes(q)):list;
+    list=q?list.filter(p=>(p.nm+' '+p.team+' '+(p.ctx||'')).toLowerCase().includes(q))
+         :list.filter(p=>p.team==='Place');
   }
   list.sort((a,b)=>(active[b.id]?1:0)-(active[a.id]?1:0));
   // 주최자 고정 행(체크박스·역할토글 없음) — 어느 탭에서도 첫 행에 항상 표시
@@ -2564,8 +2595,12 @@ document.querySelectorAll('#mtabs button').forEach(b=>{
   b.addEventListener('click',()=>{
     document.querySelectorAll('#mtabs button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');memTab=b.dataset.t;
-    $('memSearch').style.display='none';
+    // 다른 챕터 = 검색(Figma 93-1599): 검색창을 띄우고 이름으로 찾게 한다
+    const isChapter=memTab==='chapter';
+    memQ='';$('memSearch').value='';
+    $('memSearch').style.display=isChapter?'block':'none';
     renderPool();
+    if(isChapter)setTimeout(()=>$('memSearch').focus(),0);
   });
 });
 $('memSearch').addEventListener('input',e=>{memQ=e.target.value;renderPool();});
@@ -2594,15 +2629,48 @@ $('ctaBtn').addEventListener('click',()=>{
     :'아쉬운 점이 있는 분에게는 사정을 함께 알려드릴게요.');
   $('dim').classList.add('on');$('modal').classList.add('on');
 });
-$('dim').addEventListener('click',()=>{$('dim').classList.remove('on');$('modal').classList.remove('on');});
+$('dim').addEventListener('click',()=>{$('dim').classList.remove('on');$('modal').classList.remove('on');hideSlackNotif();});
 let SENT=null, RESP={};
 $('sendBtn').addEventListener('click',()=>{
-  $('dim').classList.remove('on');$('modal').classList.remove('on');
+  $('modal').classList.remove('on');
   SENT={d:pos.d,r:pos.r,ev:evalSlot(pos.d,pos.r)};
   RESP={me:'yes'};
-  buildSentScene();
-  setTimeout(()=>$('sentScene').classList.add('on'),250);
+  showSlackNotif();          // 초대 발송 → 띵동봇(슬랙) 알림 플로우
 });
+/* ══════════ 띵동봇 슬랙 알림 → 구글 캘린더 추가 ══════════ */
+function ensureSlackNotif(){
+  if(document.getElementById('slackNotif'))return document.getElementById('slackNotif');
+  const el=document.createElement('div');el.id='slackNotif';el.className='slack-notif';
+  document.getElementById('app').appendChild(el);return el;
+}
+function showSlackNotif(){
+  const el=ensureSlackNotif();
+  const name=$('mtgName').value.trim()||'팀 회의';
+  const md=`7/${DATES[SENT.d]}`;
+  el.innerHTML=`
+    <div class="sn-head">
+      <div class="sn-ava">🔔</div>
+      <span class="sn-name">띵동봇</span><span class="sn-tag">앱</span><span class="sn-time">방금</span>
+    </div>
+    <div class="sn-msg">김하늘님이 <b>${md}</b>에 회의를 생성했어요! 🎉</div>
+    <div class="sn-card">
+      <div class="sn-title">${name}</div>
+      <div class="sn-when"><img class="chip-icon" src="assets/icon-calendar.svg" alt="">${sentWhenTxt()}</div>
+      <div class="sn-avas">${actIds().map(i=>`<span>${avaInner(P(i))}</span>`).join('')}</div>
+    </div>
+    <div class="sn-note">확인을 누르면 바로 구글 캘린더에 추가돼요</div>
+    <button class="sn-btn" onclick="acceptCal()">확인하고 구글 캘린더에 추가</button>`;
+  $('dim').classList.add('on');
+  requestAnimationFrame(()=>el.classList.add('on'));
+}
+function hideSlackNotif(){const el=document.getElementById('slackNotif');if(el)el.classList.remove('on');}
+function acceptCal(){
+  hideSlackNotif();$('dim').classList.remove('on');
+  const t=$('toast');$('toastMsg').textContent='구글 캘린더에 추가됐어요';
+  t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2600);
+  if(navigator.vibrate)navigator.vibrate([14,36,14]);
+  try{dingdong();}catch(e){}
+}
 function closeSent(){$('sentScene').classList.remove('on');}
 function sentWhenTxt(){
   const st=slotTime(SENT.r);
