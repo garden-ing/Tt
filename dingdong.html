@@ -1949,6 +1949,31 @@ function fitApp(){
   const scale=Math.min(1,window.innerWidth/1440,window.innerHeight/1024);
   document.documentElement.style.setProperty('--app-scale',scale.toFixed(4));
   document.body.style.minHeight=(1024*scale)+'px';
+  // transform:scale 은 레이아웃 박스를 줄이지 않아 아래·옆에 '유령 여백'이 생긴다.
+  // 음수 마진으로 레이아웃 박스를 스케일된 크기에 맞춰, 앱이 밀리거나 잘리지 않고 화면을 채우게 한다.
+  const app=document.getElementById('app');
+  if(app){
+    app.style.marginBottom=(-(1024*(1-scale)))+'px';
+    app.style.marginLeft=app.style.marginRight=(-(1440*(1-scale)/2))+'px';
+  }
+}
+/* 레이아웃 보정용 스타일시트 주입 — 기존 <style>/HTML은 건드리지 않는다. */
+function injectFixes(){
+  if(document.getElementById('claude-layout-fixes'))return;
+  const s=document.createElement('style');
+  s.id='claude-layout-fixes';
+  s.textContent=`
+    /* SNB(사이드바)가 100vh 대신 앱 높이(1024)를 꽉 채우도록 — 스케일돼도 안 뜬다 */
+    #app aside,#app aside.mini{height:1024px!important;min-height:1024px!important;max-height:1024px!important;}
+    #app .side-in{height:1024px!important;min-height:1024px!important;max-height:1024px!important;}
+    /* 시간 고르는 단계: 참석자 리스트와 판정 카드 사이 과한 여백 제거 */
+    #app aside.mini #peopleArea{padding-bottom:0!important;}
+    #app aside.mini .verdict-card{margin-top:20px!important;}
+    /* 타임라인이 하단 24px 남기고 꽉 차도록 */
+    #app .cal-scroll{height:828px!important;}
+    #app .grid{height:828px!important;min-height:828px!important;}
+  `;
+  document.head.appendChild(s);
 }
 const COLORS={me:{bg:'#DBEAFE',tx:'#1D4ED8'},do_:{bg:'#E9DFFC',tx:'#6D28D9'},mj:{bg:'#D1FAE5',tx:'#047857'},
   yu:{bg:'#FCE7F3',tx:'#BE185D'},sj:{bg:'#FFEDD5',tx:'#C2540A'},jw:{bg:'#CFF4F0',tx:'#0F766E'},
@@ -2732,6 +2757,7 @@ new ResizeObserver(()=>{
 }).observe(grid);
 
 /* 초기화 + 테스트 훅 */
+injectFixes();
 fitApp();
 renderSide();renderAllday();renderDayhead();applyRange();updateBlkLabel();refreshMini();
 requestAnimationFrame(layout);
