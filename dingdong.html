@@ -1972,6 +1972,23 @@ function injectFixes(){
     /* 타임라인이 하단 24px 남기고 꽉 차도록 */
     #app .cal-scroll{height:828px!important;}
     #app .grid{height:828px!important;min-height:828px!important;}
+    /* 회의 목적 질문 노출 + 목적을 한 줄(자체 행)로 */
+    #app #purposeBlock{display:block!important;flex:1 1 100%!important;margin-top:16px!important;}
+    #app #rangeRow{flex-wrap:wrap!important;}
+    /* 정보 공유 목적일 때만 넛지 배너를 폼 아래에 노출 (참석자 선택 단계에선 숨김) */
+    #app #nudge{display:none!important;margin-top:12px!important;}
+    #app #nudge.on{display:block!important;}
+    #app aside.info-done #nudge.on{display:none!important;}
+    #app #nudge .nudge-btns{display:none!important;}
+    /* 멤버 선택 목록 행 간격 (Figma 93-5423) */
+    #app aside.ready .pool{gap:6px!important;}
+    /* 주최자 행: 체크박스 자리는 비워 두되 아바타는 후보들과 정렬 */
+    #app aside.ready .pool .prow.is-host::before{display:block!important;visibility:hidden!important;background:transparent!important;border-color:transparent!important;}
+    /* 멤버 선택 단계에는 판정 카드 없이 확인 버튼을 사이드바 맨 아래로 (Figma 93-5423) */
+    #app aside.ready:not(.mini) .verdict-card{display:none!important;}
+    /* 확인 버튼은 멤버 선택 화면에서만 노출 (정보 입력/미니 단계에선 숨김) */
+    #app .confirm-btn{display:none!important;}
+    #app aside.ready:not(.mini) .confirm-btn{display:block!important;}
   `;
   document.head.appendChild(s);
 }
@@ -2123,9 +2140,7 @@ function renderSide(){
   }
 
   setHiddenEl($('mtabs'),false);setHiddenEl($('allSelect'),false);setHiddenEl($('pool'),false);
-  const host=P('me');
-  // 주최자는 탭 필터와 무관한 고정 참석자 — 탭바 위에 항상 표시하고,
-  // 탭바 아래 후보 목록에서는 제외해 모든 선택 액션이 탭바 밑에서만 일어나게 한다.
+  // 탭바 위에는 요약(hero)만 — 주최자는 탭바 아래 목록의 첫 행으로 고정 (Figma 93-5423)
   $('added').innerHTML=`
     <div class="people-hero">
       <div class="hero-ava">👋🏻</div>
@@ -2133,16 +2148,12 @@ function renderSide(){
         <div class="hero-title">참석자 ${attendeeCount}명</div>
         <div class="hero-sub">필수 참석 ${reqCount}명 · 선택 참석 ${optCount}명</div>
       </div>
-    </div>
-    <div class="prow is-host is-selected">
-      <div class="ava">${avaInner(host)}</div>
-      <div><span class="nm">${host.nm} (나)</span><span class="host">주최자</span><div class="why" id="why-me">${host.ctx}</div></div>
-      <div class="st off" id="st-me"></div>
     </div>`;
   renderPool();
 }
 function renderPool(){
-  let list=PEOPLE.filter(p=>!p.me);   // 주최자는 탭바 위 고정 행에서 렌더 — 후보 목록에서 제외
+  const host=P('me');
+  let list=PEOPLE.filter(p=>!p.me);
   if(memTab==='team')list=list.filter(p=>p.team==='my');
   else if(memTab==='chapter')list=list.filter(p=>p.team==='Place');
   else{
@@ -2150,7 +2161,13 @@ function renderPool(){
     list=q?list.filter(p=>p.nm.toLowerCase().includes(q)||p.team.toLowerCase().includes(q)):list;
   }
   list.sort((a,b)=>(active[b.id]?1:0)-(active[a.id]?1:0));
-  $('pool').innerHTML=list.length?list.map(p=>{
+  // 주최자 고정 행(체크박스·역할토글 없음) — 어느 탭에서도 첫 행에 항상 표시
+  const hostRow=`
+    <div class="prow is-host">
+      <div class="ava">${avaInner(host)}</div>
+      <div><span class="nm">${host.nm} (나)</span><span class="host">주최자</span><div class="why">${host.ctx}</div></div>
+    </div>`;
+  $('pool').innerHTML=hostRow+(list.length?list.map(p=>{
     const selected=!!active[p.id],req=selected&&active[p.id].req;
     return `
     <div class="prow${selected?' is-selected':''}" onclick="togglePerson('${p.id}')">
@@ -2160,9 +2177,8 @@ function renderPool(){
         <button class="${req?'on':''}" onclick="setRole('${p.id}',true)">필참</button>
         <button class="${req?'':'on'}" onclick="setRole('${p.id}',false)">선택</button>
       </div>`:''}
-      ${selected?`<div class="st off" id="st-${p.id}"></div>`:''}
     </div>`;}).join('')
-    :`<div class="candidate-empty">${memQ?'검색 결과가 없어요':'이름이나 팀으로 검색해 보세요'}</div>`;
+    :`<div class="candidate-empty">${memQ?'검색 결과가 없어요':'이름이나 팀으로 검색해 보세요'}</div>`);
 }
 function visibleCandidates(){
   let rest=PEOPLE.filter(p=>!active[p.id]);
@@ -2507,8 +2523,8 @@ function submitInfo(){
   if(!$('mtgName').value.trim()){$('mtgName').focus();toastMsg('회의명을 먼저 입력해 주세요');return;}
   collapseInfo();
   $('nextBtn').textContent='다음';
-  // 결정·논의는 바로, 정보 공유는 최초 1회만 넛지 관문을 거쳐요
-  if(PURPOSE==='decide'||gatePassed)openMeeting();
+  // 목적과 무관하게 참석자 선택으로 진행 — 정보 공유일 때 넛지 배너는 정보성으로만 노출
+  openMeeting();
 }
 let gatePassed=false;
 function purposeLb(){return PURPOSE==='share'?'정보 공유 · 싱크업':'결정 · 논의';}
@@ -2758,6 +2774,16 @@ new ResizeObserver(()=>{
 
 /* 초기화 + 테스트 훅 */
 injectFixes();
+// 확인 버튼을 side-in 직속으로 옮겨 사이드바 맨 아래(bottom:24px)에 고정 — 목록과 겹치지 않게
+(function(){const cb=document.querySelector('.confirm-btn'),si=document.querySelector('.side-in');if(cb&&si)si.appendChild(cb);})();
+// 넛지 배너 문구를 Figma(101-5462)에 맞춰 정보성으로 교체
+function refreshNudge(){
+  const d=document.querySelector('#nudge .d');
+  if(!d)return;
+  const n=Math.max(0,actIds().length-1);
+  d.innerHTML=`비슷한 내용은 주로 Slack에서 빠르게 정리했어요.<br>${n>=2?n+'명의':'여러 명의'} 시간을 맞추지 않고 바로 공유해보세요.`;
+}
+refreshNudge();
 fitApp();
 renderSide();renderAllday();renderDayhead();applyRange();updateBlkLabel();refreshMini();
 requestAnimationFrame(layout);
