@@ -1996,8 +1996,9 @@ function injectFixes(){
     #app .dayhead .d b{margin-left:0!important;}
     /* 요약 배너와 '참석자를 알려주세요' 제목 사이 간격 확보 (3번째 이미지처럼) */
     #app aside.ready #peopleArea::before{margin-top:24px!important;}
-    /* 다른 챕터 검색창 */
-    #app #memSearch{margin:4px 0 12px!important;}
+    /* 다른 챕터 검색창 — 포커스 링이 잘리지 않게 좌우로 살짝 안쪽에 */
+    #app #memSearch{width:calc(100% - 8px)!important;margin:4px 4px 12px!important;box-sizing:border-box;}
+    #app aside.ready #peopleArea,#app aside.ready #editArea2{overflow:visible!important;}
     /* 띵동봇(슬랙) 알림 카드 */
     #app .slack-notif{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.96);opacity:0;pointer-events:none;width:400px;background:#fff;border-radius:16px;padding:22px 22px 20px;z-index:21;box-shadow:0 30px 70px rgba(37,37,45,.3);transition:opacity .25s,transform .25s cubic-bezier(.3,1.2,.5,1);}
     #app .slack-notif.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
@@ -2166,10 +2167,12 @@ function renderSide(){
         <div class="st off" id="st-${id}"></div>
       </div>`;}).join('')}</div>`;
     setHiddenEl($('mtabs'),true);setHiddenEl($('allSelect'),true);setHiddenEl($('pool'),true);
+    $('memSearch').style.display='none';   // 시간 고르는 리스트에는 검색바 숨김
     return;
   }
 
   setHiddenEl($('mtabs'),false);setHiddenEl($('allSelect'),false);setHiddenEl($('pool'),false);
+  $('memSearch').style.display=(memTab==='chapter')?'block':'none';   // 다른 챕터일 때만 검색바
   // 탭바 위에는 요약(hero)만 — 주최자는 탭바 아래 목록의 첫 행으로 고정 (Figma 93-5423)
   $('added').innerHTML=`
     <div class="people-hero">
@@ -2275,7 +2278,7 @@ function renderAllday(){
 }
 function renderDayhead(){
   $('dayhead').innerHTML='<div class="gut"></div>'+DAYS.map((w,i)=>`
-    <div class="d${i===WFH_DAY?' off':''}">${w} <b>${DATES[i]}</b><div class="bar"></div></div>`).join('');
+    <div class="d${i===WFH_DAY?' off':''}"><span class="dl">${w}</span><b>${DATES[i]}</b><div class="bar"></div></div>`).join('');
 }
 
 /* ══════════ 추가/제거/역할 ══════════ */
