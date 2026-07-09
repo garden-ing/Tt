@@ -2008,6 +2008,12 @@ function injectFixes(){
     /* 판정 배너: 기본 이모지 대신 토스 아이콘/글리프 */
     #app .verdict-card .v-ic{width:19px;height:19px;vertical-align:-4px;margin-right:2px;display:inline-block;}
     #app .verdict-card .v-star{margin-right:2px;}
+    /* 목적 버튼을 '일정 범위'(#rangeChips)와 동일한 큰 아웃라인 버튼으로 */
+    #app #purpose{height:50px!important;padding:0!important;background:transparent!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;}
+    #app #purpose button{height:50px!important;border-radius:8px!important;background:#fff!important;box-shadow:inset 0 0 0 1px rgba(0,27,55,.08)!important;color:rgba(0,12,30,.8)!important;font-size:16px!important;font-weight:500!important;}
+    #app #purpose button.on{box-shadow:inset 0 0 0 1.5px #3182F6!important;color:#3182F6!important;background:#fff!important;}
+    /* 소요 시간 표시 폰트도 Pretendard 로 통일 (기본이 SF Pro 였음) */
+    #app #durChips button{font-family:"Pretendard Variable",Pretendard,-apple-system,sans-serif!important;}
     /* 띵동봇(슬랙) 알림 카드 */
     #app .slack-notif{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.96);opacity:0;pointer-events:none;width:400px;background:#fff;border-radius:16px;padding:22px 22px 20px;z-index:21;box-shadow:0 30px 70px rgba(37,37,45,.3);transition:opacity .25s,transform .25s cubic-bezier(.3,1.2,.5,1);}
     #app .slack-notif.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
@@ -2499,13 +2505,13 @@ blk.addEventListener('pointerup',()=>{
   }
   const ev=evalSlot(pos.d,pos.r);
   if(ev.perfect&&Date.now()-lastConfetti>800){confetti();lastConfetti=Date.now();dingdong();}
-  setTimeout(()=>{live.classList.remove('on');grid.classList.remove('exploring');},700);
+  setTimeout(()=>{if(dragging)return;live.classList.remove('on');grid.classList.remove('exploring');},700);
 });
 grid.addEventListener('pointerdown',e=>{
   if(!blkShown||e.target===blk||blk.contains(e.target))return;
   pos=ptToSlot(e.clientX,e.clientY);
   live.classList.add('on');grid.classList.add('exploring');placeBlock();
-  setTimeout(()=>{live.classList.remove('on');grid.classList.remove('exploring');},900);
+  setTimeout(()=>{if(dragging)return;live.classList.remove('on');grid.classList.remove('exploring');},900);
 });
 blk.addEventListener('keydown',e=>{
   const k=e.key;
@@ -2516,7 +2522,7 @@ blk.addEventListener('keydown',e=>{
   else if(k==='Enter'){$('ctaBtn').click();return;}
   else return;
   e.preventDefault();live.classList.add('on');grid.classList.add('exploring');placeBlock();
-  clearTimeout(blk._t);blk._t=setTimeout(()=>{live.classList.remove('on');grid.classList.remove('exploring');},900);
+  clearTimeout(blk._t);blk._t=setTimeout(()=>{if(dragging)return;live.classList.remove('on');grid.classList.remove('exploring');},900);
 });
 
 /* ══════════ 옵션: 소요 시간 · 날짜 · 목적 · 탭 ══════════ */
@@ -2637,7 +2643,7 @@ $('magicBtn').addEventListener('click',()=>{
   pos={...BEST};live.classList.add('on');grid.classList.add('exploring');
   blk.style.transition='transform .6s cubic-bezier(.3,1.25,.4,1), background .3s';
   placeBlock();
-  setTimeout(()=>{blk.style.transition='';live.classList.remove('on');grid.classList.remove('exploring');},1200);
+  setTimeout(()=>{blk.style.transition='';if(dragging)return;live.classList.remove('on');grid.classList.remove('exploring');},1200);
 });
 
 /* ══════════ 확정 ══════════ */
@@ -2856,7 +2862,7 @@ function showGuide(force=false){
 function hideGuide(mark=true){
   if(mark)guideDone=true;
   $('spot').classList.remove('on');$('gtip').classList.remove('on');
-  if(mark){grid.classList.add('exploring');setTimeout(()=>grid.classList.remove('exploring'),1300);}
+  if(mark){grid.classList.add('exploring');setTimeout(()=>{if(!dragging)grid.classList.remove('exploring');},1300);}
 }
 
 /* 그리드 폭 변화 실시간 리플로우 (패널 접힘 애니메이션 추적) */
