@@ -4,11 +4,295 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>딩동 — 회의 시간, 딩동 한 번으로</title>
-<link rel="canonical" href="landing.html">
-<meta http-equiv="refresh" content="0; url=landing.html">
-<script>location.replace("landing.html" + location.search + location.hash);</script>
+<meta name="description" content="Google Calendar·Slack를 연결해 참석자 일정을 자동으로 모으고, 가장 좋은 회의 시간을 추천해요. 딩동.">
+<meta property="og:title" content="딩동 — 회의 시간, 딩동 한 번으로">
+<meta property="og:description" content="Google Calendar·Slack를 연결해 가장 좋은 회의 시간을 추천해요.">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+  :root{
+    --blue:#3182F6; --navy:#1D4A79; --ink:rgba(0,12,30,.8); --ink-3:rgba(0,19,43,.58);
+    --app-w:1440; --app-h:1024;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    color:var(--ink); -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    background:#fff;
+  }
+  a{color:inherit;text-decoration:none}
+
+  /* ── HERO ── */
+  .hero{
+    position:relative; width:100%; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:40px 0 20px; overflow:hidden;
+    background:
+      linear-gradient(180deg, rgba(145,229,252,.7) 6%, rgb(255,255,255) 44%, rgba(145,204,252,.7) 86%, rgb(255,255,255) 100%);
+  }
+  /* brand mark */
+  .brand{position:absolute; top:26px; left:32px; z-index:20; display:flex; align-items:center; gap:8px; font-weight:800; font-size:20px; letter-spacing:-.02em; color:#0B2A4A}
+  .brand .m{width:30px;height:30px;display:grid;place-items:center;background:var(--blue);border-radius:9px;box-shadow:0 6px 14px rgba(49,130,246,.35)}
+
+  /* scaled stage — exact Figma coords on a 1440×517 canvas */
+  .stage-wrap{width:100%;display:flex;justify-content:center}
+  .stage{position:relative; width:1440px; height:517px; transform-origin:top center; flex:0 0 auto}
+  .stage > *{position:absolute}
+
+  /* app card (right) */
+  .card{
+    left:612px; top:55px; width:757.86px; height:541.33px;
+    background:#fff; padding:4.164px; border-radius:16.656px;
+    box-shadow:0 40px 90px rgba(21,63,120,.20), 0 8px 24px rgba(21,63,120,.10);
+  }
+  .card .screen{width:749.531px;height:533px;border-radius:16.656px;overflow:hidden;position:relative;background:#fff}
+  .card iframe{position:absolute;top:0;left:0;width:1440px;height:1024px;border:0;transform:scale(.52067);transform-origin:top left}
+  /* click-catcher so the whole card is a link (preview stays visual) */
+  .card .catch{position:absolute;inset:0;z-index:3;cursor:pointer;background:transparent}
+  .card .open{
+    position:absolute; z-index:4; right:12px; bottom:12px; display:flex; align-items:center; gap:5px;
+    background:rgba(17,38,66,.82); color:#fff; font-size:12px; font-weight:700; padding:7px 12px; border-radius:999px;
+    backdrop-filter:blur(4px); opacity:0; transform:translateY(6px); transition:opacity .25s, transform .25s; pointer-events:none;
+  }
+  .card:hover .open{opacity:1;transform:none}
+
+  /* connectors + dots (SVG overlay across full stage) */
+  .wires{left:0;top:0;width:1440px;height:517px;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#8FB4E6;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:2 7;
+    stroke-dashoffset:220; transition:stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1)}
+  .dot{fill:#fff;stroke:#3182F6;stroke-width:2.4;opacity:0;transform:scale(.2);transform-origin:center;transition:opacity .3s, transform .35s cubic-bezier(.2,1.4,.4,1)}
+
+  /* pills */
+  .pill{display:flex;align-items:center;border:.925px solid #fff;border-radius:273px;
+    opacity:0;transform:scale(.85) translateY(8px);transition:opacity .5s ease, transform .55s cubic-bezier(.2,1,.3,1)}
+  .pill img,.pill svg{display:block}
+  .pill span{font-family:"Pretendard Variable",Pretendard;font-weight:500;color:var(--ink-3);white-space:nowrap}
+  .pill.gcal{left:144px;top:83px;transform-origin:center;padding:16.39px 21.85px 16.39px 22.21px;gap:16.39px;
+    background:rgba(231,231,231,.5);rotate:-3.32deg}
+  .pill.gcal img,.pill.gcal svg{width:43.706px;height:43.706px}
+  .pill.gcal span{font-size:33.317px;line-height:43.57px}
+  .pill.slack{left:333px;top:225px;padding:16.39px 21.85px 16.39px 22.21px;gap:16.39px;
+    background:rgba(235,235,235,.5);rotate:9.1deg}
+  .pill.slack img,.pill.slack svg{width:43.71px;height:43.71px}
+  .pill.slack span{font-size:33.317px;line-height:43.57px}
+
+  /* 서비스 써보기 button */
+  .try{
+    left:71px;top:360px;display:flex;align-items:center;gap:12px;
+    padding:19.997px 26.663px 19.997px 27.1px;border:1px solid #fff;border-radius:333.291px;
+    background:linear-gradient(90deg, rgba(180,211,255,.85), rgba(81,153,255,.85));
+    box-shadow:0 20px 44px rgba(49,110,220,.28);
+    cursor:pointer; opacity:0; transform:scale(.8) translateY(10px);
+    transition:opacity .6s cubic-bezier(.2,1,.3,1), transform .6s cubic-bezier(.2,1.5,.35,1), box-shadow .2s;
+  }
+  .try:hover{box-shadow:0 26px 54px rgba(49,110,220,.4)}
+  .try:active{transform:scale(.97)}
+  .try span{font-family:"Pretendard Variable",Pretendard;font-weight:500;font-size:40.651px;line-height:53.16px;
+    letter-spacing:-.813px;color:var(--navy);white-space:nowrap}
+  .try img,.try svg{width:54px;height:54px;display:block}
+  .try .pulse{position:relative}
+  .try .pulse::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--navy);opacity:0;animation:none}
+
+  /* played state */
+  .stage.play .pill{opacity:1;transform:none}
+  .stage.play .pill.gcal{transform:none}
+  .stage.play .wire{stroke-dashoffset:0}
+  .stage.play .dot{opacity:1;transform:scale(1)}
+  .stage.play .try{opacity:1;transform:none}
+  .stage.play .try .pulse::after{animation:ring 2.2s ease-out .3s infinite}
+  @keyframes ring{0%{opacity:.5;transform:scale(.8)}70%{opacity:0;transform:scale(1.5)}100%{opacity:0}}
+
+  /* delays: pills → wires → dots → button (~2.5s) */
+  .stage.play .pill.gcal{transition-delay:.15s}
+  .stage.play .pill.slack{transition-delay:.4s}
+  .stage.play .card{}
+  .stage.play .wire.w1{transition-delay:.9s}
+  .stage.play .wire.w2{transition-delay:1.25s}
+  .stage.play .dot.d1{transition-delay:1.7s}
+  .stage.play .dot.d2{transition-delay:2.0s}
+  .stage.play .try{transition-delay:2.5s}
+
+  .card{opacity:0;transform:translateX(24px);transition:opacity .7s ease, transform .7s cubic-bezier(.2,1,.3,1)}
+  .stage.play .card{opacity:1;transform:none;transition-delay:.1s}
+
+  /* caption under hero */
+  .cap{position:absolute;left:0;right:0;bottom:26px;text-align:center;z-index:15;
+    font-size:15px;font-weight:600;color:rgba(29,74,121,.72);letter-spacing:-.01em;
+    opacity:0;animation:fadeUp .8s ease 2.9s forwards}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ── 실제 동작 영상 섹션 ── */
+  .demo-sec{background:#F7F9FB;padding:92px 24px 100px;border-top:1px solid #EEF1F4}
+  .demo-inner{max-width:1040px;margin:0 auto;text-align:center}
+  .demo-sec .eyebrow{font-size:15px;font-weight:800;color:var(--blue);letter-spacing:-.01em;margin-bottom:12px}
+  .demo-sec h2{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.03em;line-height:1.22;color:#191F28}
+  .demo-sec .sub{max-width:520px;margin:16px auto 0;color:var(--ink-3);font-size:17px;font-weight:500;line-height:1.6}
+  .vframe{position:relative;margin:48px auto 0;max-width:940px;border-radius:16px;overflow:hidden;
+    border:1px solid #E5E9ED;box-shadow:0 30px 70px rgba(21,63,120,.16);background:#0d1117}
+  .vframe .bar{display:flex;align-items:center;gap:7px;height:38px;padding:0 15px;background:#F1F3F5;border-bottom:1px solid #E5E9ED}
+  .vframe .bar i{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .vframe .bar i:nth-child(1){background:#FF5F57}.vframe .bar i:nth-child(2){background:#FEBC2E}.vframe .bar i:nth-child(3){background:#28C840}
+  .vframe .bar .u{margin-left:12px;flex:1;height:22px;border-radius:7px;background:#fff;border:1px solid #E5E9ED;display:flex;align-items:center;padding:0 10px;font-size:12px;color:var(--ink-3);font-weight:600}
+  .vframe video{display:block;width:100%;height:auto;background:#0d1117}
+  .vframe.failed video{display:none}
+  .vph{display:none;aspect-ratio:16/10;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:linear-gradient(160deg,#EAF2FF,#F7F9FB);color:#5B6B7C;padding:32px;text-align:center}
+  .vph .ic{width:64px;height:64px;border-radius:18px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(21,63,120,.12)}
+  .vph b{font-size:17px;color:#334155;font-weight:800}
+  .vph small{font-size:14px;color:#7A8794;font-weight:500;line-height:1.6;max-width:420px}
+  .vph code{background:#fff;border:1px solid #E1E7EC;border-radius:6px;padding:2px 7px;font-size:12.5px;color:#3182F6;font-weight:700}
+  .vframe.failed .vph{display:flex}
+
+  footer{padding:30px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+    color:var(--ink-3);font-size:14px;font-weight:500;border-top:1px solid #EEF1F4}
+  footer .brand2{display:flex;align-items:center;gap:7px;font-weight:800;color:var(--ink)}
+  footer .brand2 .m{width:22px;height:22px;display:grid;place-items:center;background:var(--blue);border-radius:6px}
+
+  @media (max-width:520px){
+    .brand{top:18px;left:18px;font-size:18px}
+    .cap{font-size:13px}
+  }
+</style>
 </head>
 <body>
-<p>딩동 랜딩으로 이동 중… 자동으로 넘어가지 않으면 <a href="landing.html">여기</a>를 눌러주세요.</p>
+
+<section class="hero">
+  <div class="brand">
+    <span class="m"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3a1 1 0 0 1 1 1v.6a6 6 0 0 1 5 5.9v3.2l1.4 2.1a1 1 0 0 1-.83 1.55H5.43a1 1 0 0 1-.83-1.55L6 13.7v-3.2a6 6 0 0 1 5-5.9V4a1 1 0 0 1 1-1Z" fill="#fff"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+    딩동
+  </div>
+
+  <div class="stage-wrap">
+    <div class="stage" id="stage">
+
+      <!-- connectors -->
+      <svg class="wires" viewBox="0 0 1440 517" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path class="wire w1" d="M505 118 C 548 110, 578 112, 612 116" pathLength="220"/>
+        <path class="wire w2" d="M512 286 C 552 289, 582 294, 612 300" pathLength="220"/>
+        <circle class="dot d1" cx="500" cy="119" r="6.1"/>
+        <circle class="dot d2" cx="507" cy="286" r="6.1"/>
+      </svg>
+
+      <!-- pills -->
+      <div class="pill gcal">
+        <svg viewBox="0 0 43.7065 43.7065" width="43.706" height="43.706" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M33.3549 10.3514H10.3516V33.3547H33.3549V10.3514Z" fill="#fff"/>
+          <path d="M33.3549 43.706L43.7065 33.3544L38.5307 32.4713L33.3549 33.3544L32.4103 38.0887L33.3549 43.706Z" fill="#EA4335"/>
+          <path d="M0 33.3545V40.2555C0 42.162 1.54413 43.7061 3.45048 43.7061H10.3517L11.4145 38.5303L10.3517 33.3545L4.71199 32.4715L0 33.3545Z" fill="#188038"/>
+          <path d="M43.7065 10.3516V3.45039C43.7065 1.54404 42.1624 0 40.2561 0L33.3549 0C32.7252 2.56705 32.4104 4.45621 32.4102 5.66747C32.4102 6.87862 32.7251 8.43999 33.3549 10.3516C35.6444 11.0072 37.3696 11.335 38.5307 11.335C39.6918 11.335 41.417 11.0073 43.7065 10.3516Z" fill="#1967D2"/>
+          <path d="M43.7066 10.3513H33.3549V33.3546H43.7066V10.3513Z" fill="#FBBC04"/>
+          <path d="M33.3549 33.3545H10.3516V43.7061H33.3549V33.3545Z" fill="#34A853"/>
+          <path d="M33.3549 0H3.45059C1.54407 0 0 1.54407 0 3.45042V33.3549H10.3516V10.3516H33.3549V0Z" fill="#4285F4"/>
+          <path d="M15.0703 28.1963C14.2105 27.6155 13.6152 26.7673 13.2903 25.6457L15.2859 24.8234C15.4669 25.5135 15.7832 26.0484 16.2348 26.4279C16.6833 26.8075 17.2296 26.9944 17.868 26.9944C18.5206 26.9944 19.0813 26.796 19.55 26.3991C20.0188 26.0023 20.2546 25.4963 20.2546 24.8839C20.2546 24.257 20.0073 23.7451 19.5128 23.3483C19.0182 22.9516 18.3971 22.7532 17.6553 22.7532H16.5022V20.7779H17.5373C18.1756 20.7779 18.7133 20.6052 19.1503 20.26C19.5874 19.9152 19.8059 19.4434 19.8059 18.8425C19.8059 18.3078 19.6105 17.8821 19.2195 17.563C18.8285 17.2438 18.3337 17.0828 17.7328 17.0828C17.1462 17.0828 16.6804 17.2381 16.3354 17.5514C15.9904 17.8656 15.7312 18.2624 15.5819 18.7045L13.6066 17.8821C13.8682 17.1403 14.3484 16.4847 15.0529 15.9182C15.7573 15.3518 16.6574 15.0672 17.75 15.0672C18.5581 15.0672 19.2856 15.2225 19.9297 15.5358C20.5737 15.8493 21.0797 16.2834 21.4449 16.8356C21.8103 17.3904 21.9913 18.0115 21.9913 18.7016C21.9913 19.4061 21.8217 20.0014 21.4825 20.4902C21.1433 20.979 20.7262 21.3527 20.2316 21.6144V21.7322C20.8702 21.9956 21.4249 22.428 21.8361 22.9832C22.253 23.5438 22.463 24.2138 22.463 24.996C22.463 25.778 22.2644 26.4768 21.8677 27.0892C21.4709 27.7017 20.9218 28.1847 20.2258 28.5356C19.5271 28.8864 18.7421 29.0648 17.8709 29.0648C16.8616 29.0676 15.9301 28.7772 15.0703 28.1963ZM27.3279 18.2932L25.1369 19.8776L24.0414 18.2157L27.9721 15.3804H29.4787V28.7541H27.3279V18.2932Z" fill="#4285F4"/>
+        </svg>
+        <span>Google Calendar</span>
+      </div>
+      <div class="pill slack">
+        <svg viewBox="0 0 43.7104 43.7104" width="43.71" height="43.71" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M9.30726 27.5647C9.30726 30.0678 7.26585 32.1123 4.76241 32.1123C2.25897 32.1123 0.215165 30.0678 0.215165 27.5647C0.215165 25.0616 2.25965 23.0171 4.76275 23.0171H9.3076L9.30726 27.5647ZM11.5983 27.5647C11.5983 25.0616 13.6428 23.0171 16.1459 23.0171C18.649 23.0171 20.6935 25.0613 20.6935 27.5647V38.9482C20.6935 41.4513 18.6493 43.4958 16.1459 43.4958C13.6428 43.4958 11.5983 41.4513 11.5983 38.9482V27.5647Z" fill="#DE1C59"/>
+          <path d="M16.1458 9.30717C13.6427 9.30717 11.5983 7.26575 11.5983 4.76231C11.5983 2.25887 13.6427 0.21507 16.1458 0.21507C18.6489 0.21507 20.6934 2.25955 20.6934 4.76265V9.30751L16.1458 9.30717ZM16.1458 11.5982C18.6489 11.5982 20.6934 13.6427 20.6934 16.1458C20.6934 18.6489 18.6493 20.6934 16.1458 20.6934H4.76238C2.25927 20.6934 0.215133 18.6492 0.215133 16.1458C0.215133 13.6427 2.25962 11.5982 4.76272 11.5982H16.1458Z" fill="#35C5F0"/>
+          <path d="M34.4031 16.1459C34.4031 13.6427 36.4445 11.5983 38.948 11.5983C41.4514 11.5983 43.4955 13.6427 43.4955 16.1459C43.4955 18.649 41.4511 20.6934 38.948 20.6934H34.4031V16.1459ZM32.1121 16.1459C32.1121 18.649 30.0676 20.6934 27.5645 20.6934C25.0614 20.6934 23.0169 18.6493 23.0169 16.1459V4.76238C23.0169 2.25928 25.061 0.215135 27.5645 0.215135C30.0676 0.215135 32.1121 2.25962 32.1121 4.76272V16.1459Z" fill="#2EB57D"/>
+          <path d="M27.5645 34.403C30.0676 34.403 32.1121 36.4444 32.1121 38.9479C32.1121 41.4513 30.0676 43.4954 27.5645 43.4954C25.0614 43.4954 23.0169 41.451 23.0169 38.9479V34.403H27.5645ZM27.5645 32.112C25.0614 32.112 23.0169 30.0675 23.0169 27.5644C23.0169 25.0613 25.061 23.0168 27.5645 23.0168H38.948C41.4511 23.0168 43.4955 25.0609 43.4955 27.5644C43.4955 30.0675 41.4511 32.112 38.948 32.112H27.5645Z" fill="#EBB02E"/>
+        </svg>
+        <span>Slack</span>
+      </div>
+
+      <!-- try button -->
+      <a class="try app-link" href="#" target="_blank" rel="noopener">
+        <span>서비스 써보기</span>
+        <span class="pulse"><svg viewBox="0 0 54 54" width="54" height="54" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M27 49.5C39.4264 49.5 49.5 39.4264 49.5 27C49.5 14.5736 39.4264 4.5 27 4.5C14.5736 4.5 4.5 14.5736 4.5 27C4.5 39.4264 14.5736 49.5 27 49.5Z" stroke="#1D4A79" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M27 36L36 27L27 18" stroke="#1D4A79" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18 27H36" stroke="#1D4A79" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg></span>
+      </a>
+
+      <!-- live app card -->
+      <div class="card">
+        <div class="screen">
+          <iframe src="https://seoljeongwon-toss.vercel.app/" title="딩동 라이브 데모" loading="eager" scrolling="no"></iframe>
+          <a class="catch app-link" href="#" target="_blank" rel="noopener" aria-label="딩동 앱 열기"></a>
+          <span class="open">새 탭에서 열기 ↗</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="cap">버튼을 눌러 직접 딩동을 써보세요 — 아래로 내리면 서비스 작동 영상을 볼 수 있어요</div>
+</section>
+
+<!-- ── 실제 동작 영상 (루프) ── -->
+<section class="demo-sec" id="demo">
+  <div class="demo-inner">
+    <div class="eyebrow">직접 보기</div>
+    <h2>실제로 이렇게 동작해요</h2>
+    <p class="sub">회의 정보 입력부터 참석자 선택, 시간 추천까지 — 딩동의 실제 흐름이에요.</p>
+
+    <div class="vframe" id="vframe">
+      <div class="bar"><i></i><i></i><i></i><span class="u">dingdong · 실제 동작 데모</span></div>
+      <video id="demoVid" autoplay muted loop playsinline preload="auto" poster="assets/demo-poster.jpg?v=3">
+        <source src="assets/demo.mp4?v=3" type="video/mp4">
+      </video>
+      <div class="vph" id="vph">
+        <div class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M8 5.5v13l11-6.5-11-6.5Z" fill="#3182F6"/></svg></div>
+        <b>딩동 실제 동작 데모</b>
+        <small>영상을 재생할 수 없어요. 새로고침(⌘⇧R) 후에도 안 되면 알려주세요.</small>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="brand2"><span class="m"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 3a1 1 0 0 1 1 1v.6a6 6 0 0 1 5 5.9v3.2l1.4 2.1a1 1 0 0 1-.83 1.55H5.43a1 1 0 0 1-.83-1.55L6 13.7v-3.2a6 6 0 0 1 5-5.9V4a1 1 0 0 1 1-1Z" fill="#fff"/></svg></span>딩동</div>
+  <span>© 2026 딩동. 회의 시간, 딩동 한 번으로.</span>
+</footer>
+
+<script>
+  var APP_URL = "https://seoljeongwon-toss.vercel.app/";
+  document.querySelectorAll('.app-link').forEach(function(a){ a.href = APP_URL; });
+
+  var stage = document.getElementById('stage');
+
+  // scale the 1440-wide stage to fit the viewport width
+  function fit(){
+    var pad = window.innerWidth < 640 ? 16 : 48;
+    var avail = window.innerWidth - pad;
+    var s = Math.min(1, avail / 1440);
+    stage.style.transform = 'scale(' + s + ')';
+    // reserve correct height in the flex flow (stage is transform-origin top center)
+    stage.parentElement.style.height = (517 * s) + 'px';
+  }
+  fit();
+  window.addEventListener('resize', fit, {passive:true});
+
+  // play the intro once fonts + first paint are ready
+  function play(){ stage.classList.add('play'); }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function(){ requestAnimationFrame(function(){ setTimeout(play, 120); }); });
+  } else {
+    window.addEventListener('load', function(){ setTimeout(play, 120); });
+  }
+  // safety: never leave it un-played
+  setTimeout(play, 1200);
+
+  // demo video: poster shows immediately, video autoplays/loops.
+  // Only on a hard load error do we reveal the fallback placeholder.
+  (function(){
+    var v = document.getElementById('demoVid'), vf = document.getElementById('vframe');
+    if(!v || !vf) return;
+    function fail(){ vf.classList.add('failed'); }
+    v.addEventListener('error', fail, true);
+    var src = v.querySelector('source');
+    if(src) src.addEventListener('error', function(){ if(v.networkState === 3) fail(); }); // NETWORK_NO_SOURCE
+    v.addEventListener('canplay', function(){ v.play().catch(function(){}); });
+    // pause when off-screen to save resources
+    if('IntersectionObserver' in window){
+      new IntersectionObserver(function(es){ es.forEach(function(e){
+        if(e.isIntersecting){ v.play().catch(function(){}); } else { v.pause(); }
+      }); }, {threshold:.25}).observe(v);
+    }
+  })();
+</script>
 </body>
 </html>
