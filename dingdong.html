@@ -1982,9 +1982,14 @@ function injectFixes(){
     #app #nudge .nudge-btns{display:none!important;}
     /* 멤버 선택 목록 행 간격 (Figma 93-5423) */
     #app aside.ready .pool{gap:6px!important;}
-    /* 주최자 고정 행: 탭바 아래·검색창 위, 후보 목록과 약간 간격 */
-    #app aside.ready #hostRow{margin:0 0 14px!important;}
+    /* 주최자 고정 행: 탭바 '위'에 배치, 탭과 간격 */
+    #app aside.ready #hostRow{margin:4px 0 16px!important;}
     #app aside.ready #hostRow .prow{width:313px!important;}
+    /* 요약카드 수정 버튼: 회색 사각형 대신 토스 연필 아이콘 */
+    #app aside.ready #infoSummary .edit{background:#E5E8EB url("assets/icon-edit.svg") center/15px 15px no-repeat!important;}
+    #app aside.ready #infoSummary .edit::before{display:none!important;}
+    /* hero 아이콘: 토스 손 흔드는 사람 이모지(svg) */
+    #app .people-hero .hero-ava img{width:24px;height:24px;display:block;}
     /* 멤버 선택 단계에는 판정 카드 없이 확인 버튼을 사이드바 맨 아래로 (Figma 93-5423) */
     #app aside.ready:not(.mini) .verdict-card{display:none!important;}
     /* 확인 버튼은 멤버 선택 화면에서만 노출 (정보 입력/미니 단계에선 숨김) */
@@ -2182,7 +2187,7 @@ function renderSide(){
   // 탭바 위에는 요약(hero)만 — 주최자는 탭바 아래 목록의 첫 행으로 고정 (Figma 93-5423)
   $('added').innerHTML=`
     <div class="people-hero">
-      <div class="hero-ava">👋🏻</div>
+      <div class="hero-ava"><img src="assets/avatar-2.svg" alt=""></div>
       <div>
         <div class="hero-title">참석자 ${attendeeCount}명</div>
         <div class="hero-sub">필수 참석 ${reqCount}명 · 선택 참석 ${optCount}명</div>
@@ -2865,8 +2870,8 @@ new ResizeObserver(()=>{
 injectFixes();
 // 확인 버튼을 side-in 직속으로 옮겨 사이드바 맨 아래(bottom:24px)에 고정 — 목록과 겹치지 않게
 (function(){const cb=document.querySelector('.confirm-btn'),si=document.querySelector('.side-in');if(cb&&si)si.appendChild(cb);})();
-// 주최자 고정 행 컨테이너를 탭바 바로 아래(검색창 위)에 생성
-(function(){const mt=document.getElementById('mtabs');if(mt&&!document.getElementById('hostRow')){const hr=document.createElement('div');hr.id='hostRow';mt.insertAdjacentElement('afterend',hr);}})();
+// 주최자 고정 행 컨테이너를 탭바 '위'에 생성 (요약/hero 아래, 탭 위)
+(function(){const mt=document.getElementById('mtabs');if(mt&&!document.getElementById('hostRow')){const hr=document.createElement('div');hr.id='hostRow';mt.insertAdjacentElement('beforebegin',hr);}})();
 // 넛지 배너 문구를 Figma(101-5462)에 맞춰 정보성으로 교체
 function refreshNudge(){
   const d=document.querySelector('#nudge .d');
