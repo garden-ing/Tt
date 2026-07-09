@@ -1,0 +1,5 @@
+node_modules/
+shots*/
+shot*.js
+package*.json
+.claude/
