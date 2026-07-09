@@ -1982,8 +1982,9 @@ function injectFixes(){
     #app #nudge .nudge-btns{display:none!important;}
     /* 멤버 선택 목록 행 간격 (Figma 93-5423) */
     #app aside.ready .pool{gap:6px!important;}
-    /* 주최자 행: 체크박스 자리는 비워 두되 아바타는 후보들과 정렬 */
-    #app aside.ready .pool .prow.is-host::before{display:block!important;visibility:hidden!important;background:transparent!important;border-color:transparent!important;}
+    /* 주최자 고정 행: 탭바 아래·검색창 위, 후보 목록과 약간 간격 */
+    #app aside.ready #hostRow{margin:0 0 14px!important;}
+    #app aside.ready #hostRow .prow{width:313px!important;}
     /* 멤버 선택 단계에는 판정 카드 없이 확인 버튼을 사이드바 맨 아래로 (Figma 93-5423) */
     #app aside.ready:not(.mini) .verdict-card{display:none!important;}
     /* 확인 버튼은 멤버 선택 화면에서만 노출 (정보 입력/미니 단계에선 숨김) */
@@ -1996,9 +1997,12 @@ function injectFixes(){
     #app .dayhead .d b{margin-left:0!important;}
     /* 요약 배너와 '참석자를 알려주세요' 제목 사이 간격 확보 (3번째 이미지처럼) */
     #app aside.ready #peopleArea::before{margin-top:24px!important;}
-    /* 다른 챕터 검색창 — 포커스 링이 잘리지 않게 좌우로 살짝 안쪽에 */
-    #app #memSearch{width:calc(100% - 8px)!important;margin:4px 4px 12px!important;box-sizing:border-box;}
+    /* 다른 챕터 검색창 — 포커스 링이 잘리지 않게 좌우로 살짝 안쪽에 + 돋보기 아이콘 */
+    #app #memSearch{width:calc(100% - 8px)!important;margin:4px 4px 12px!important;box-sizing:border-box;background-image:url("assets/icon-search-mono.svg")!important;background-repeat:no-repeat!important;background-position:14px center!important;background-size:20px 20px!important;padding-left:44px!important;}
     #app aside.ready #peopleArea,#app aside.ready #editArea2{overflow:visible!important;}
+    /* 판정 배너: 기본 이모지 대신 토스 아이콘/글리프 */
+    #app .verdict-card .v-ic{width:19px;height:19px;vertical-align:-4px;margin-right:2px;display:inline-block;}
+    #app .verdict-card .v-star{margin-right:2px;}
     /* 띵동봇(슬랙) 알림 카드 */
     #app .slack-notif{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.96);opacity:0;pointer-events:none;width:400px;background:#fff;border-radius:16px;padding:22px 22px 20px;z-index:21;box-shadow:0 30px 70px rgba(37,37,45,.3);transition:opacity .25s,transform .25s cubic-bezier(.3,1.2,.5,1);}
     #app .slack-notif.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
@@ -2166,13 +2170,15 @@ function renderSide(){
         <div><span class="nm">${p.me?`${p.nm} (나)`:p.nm}</span>${p.me?'<span class="host">주최자</span>':''}<div class="why" id="why-${id}">${p.ctx}</div></div>
         <div class="st off" id="st-${id}"></div>
       </div>`;}).join('')}</div>`;
-    setHiddenEl($('mtabs'),true);setHiddenEl($('allSelect'),true);setHiddenEl($('pool'),true);
+    setHiddenEl($('mtabs'),true);setHiddenEl($('allSelect'),true);setHiddenEl($('pool'),true);setHiddenEl($('hostRow'),true);
     $('memSearch').style.display='none';   // 시간 고르는 리스트에는 검색바 숨김
     return;
   }
 
-  setHiddenEl($('mtabs'),false);setHiddenEl($('allSelect'),false);setHiddenEl($('pool'),false);
-  $('memSearch').style.display=(memTab==='chapter')?'block':'none';   // 다른 챕터일 때만 검색바
+  const isChapter=memTab==='chapter';
+  setHiddenEl($('mtabs'),false);setHiddenEl($('pool'),false);setHiddenEl($('hostRow'),false);
+  setHiddenEl($('allSelect'),isChapter);                 // 전체 선택은 내 팀원에서만
+  $('memSearch').style.display=isChapter?'block':'none'; // 검색창은 다른 챕터에서만
   // 탭바 위에는 요약(hero)만 — 주최자는 탭바 아래 목록의 첫 행으로 고정 (Figma 93-5423)
   $('added').innerHTML=`
     <div class="people-hero">
@@ -2195,13 +2201,14 @@ function renderPool(){
          :list.filter(p=>p.team==='Place');
   }
   list.sort((a,b)=>(active[b.id]?1:0)-(active[a.id]?1:0));
-  // 주최자 고정 행(체크박스·역할토글 없음) — 어느 탭에서도 첫 행에 항상 표시
-  const hostRow=`
+  // 주최자 고정 행은 탭바 바로 아래·검색창 위에 별도로 (Figma 93-1599 순서: 주최자 → 검색 → 후보)
+  const hr=document.getElementById('hostRow');
+  if(hr)hr.innerHTML=`
     <div class="prow is-host">
       <div class="ava">${avaInner(host)}</div>
       <div><span class="nm">${host.nm} (나)</span><span class="host">주최자</span><div class="why">${host.ctx}</div></div>
     </div>`;
-  $('pool').innerHTML=hostRow+(list.length?list.map(p=>{
+  $('pool').innerHTML=(list.length?list.map(p=>{
     const selected=!!active[p.id],req=selected&&active[p.id].req;
     return `
     <div class="prow${selected?' is-selected':''}" onclick="togglePerson('${p.id}')">
@@ -2425,23 +2432,24 @@ function update(){
   [...document.querySelectorAll('.dayhead .d')].forEach((el,i)=>el.classList.toggle('on',i===pos.d));
 
   vc.className='verdict-card '+(ev.perfect?'ok':ev.blocked?'bad':'warn');
+  const vIc=f=>`<img class="v-ic" src="assets/${f}" alt="">`;
   if(ev.perfect){
     const isBest=BEST&&BEST.d===pos.d&&BEST.r===pos.r;
-    if(isBest){$('vTxt').textContent='⭐ 여기가 추천 자리예요';
+    if(isBest){$('vTxt').innerHTML='<span class="v-star">★</span> 여기가 추천 자리예요';
       $('vDesc').textContent=bestWhyLong();}
-    else{$('vTxt').textContent=`🎯 ${n}명 모두 괜찮은 시간이에요`;
+    else{$('vTxt').innerHTML=`<span class="v-star">✓</span> ${n}명 모두 괜찮은 시간이에요`;
       $('vDesc').textContent='이대로도 좋아요. ★가 추천 자리예요.';}
   }
-  else if(ev.wfh){$('vTxt').textContent='🏠 금요일은 재택이 많아요';
+  else if(ev.wfh){$('vTxt').innerHTML=vIc('icon-home.svg')+' 금요일은 재택이 많아요';
     $('vDesc').textContent='얼굴 보고 하는 회의는 월–목에 잡아요.';}
-  else if(ev.lunch){$('vTxt').textContent='🍚 점심시간이에요';
+  else if(ev.lunch){$('vTxt').innerHTML=vIc('icon-rice.svg')+' 점심시간이에요';
     $('vDesc').textContent='오후 1–2시는 모두의 밥 시간 — 피해서 잡아요.';}
   else if(ev.blocked){$('vTxt').textContent=`이 시간은 어려워요 · 필참 ${okReq}/${nq}명`;
     $('vDesc').textContent='붉은 칸을 피해 옮겨보세요. 블록을 잡으면 초록 구간이 보여요.';}
   else{$('vTxt').textContent=`진행할 수 있어요 · 아쉬운 점 ${ev.soft+ev.optHard}개`;
     $('vDesc').textContent='확정할 수 있지만, 더 좋은 자리가 있어요.';}
   const sub=$('liveSub');
-  if(sub)sub.textContent= ev.perfect?((BEST&&BEST.d===pos.d&&BEST.r===pos.r)?'★ 추천 시간':'✓ 모두 가능'):ev.wfh?'🏠 재택일':ev.lunch?'🍚 점심시간':ev.blocked?`필참 ${okReq}/${nq}명`:'진행 가능';
+  if(sub)sub.textContent= ev.perfect?((BEST&&BEST.d===pos.d&&BEST.r===pos.r)?'★ 추천 시간':'✓ 모두 가능'):ev.wfh?'재택일':ev.lunch?'점심시간':ev.blocked?`필참 ${okReq}/${nq}명`:'진행 가능';
 
   cta.disabled=ev.blocked;
   cta.classList.toggle('ok',ev.perfect);
@@ -2608,6 +2616,7 @@ document.querySelectorAll('#mtabs button').forEach(b=>{
     const isChapter=memTab==='chapter';
     memQ='';$('memSearch').value='';
     $('memSearch').style.display=isChapter?'block':'none';
+    setHiddenEl($('allSelect'),isChapter);   // 전체 선택은 내 팀원에서만
     renderPool();
     if(isChapter)setTimeout(()=>$('memSearch').focus(),0);
   });
@@ -2856,6 +2865,8 @@ new ResizeObserver(()=>{
 injectFixes();
 // 확인 버튼을 side-in 직속으로 옮겨 사이드바 맨 아래(bottom:24px)에 고정 — 목록과 겹치지 않게
 (function(){const cb=document.querySelector('.confirm-btn'),si=document.querySelector('.side-in');if(cb&&si)si.appendChild(cb);})();
+// 주최자 고정 행 컨테이너를 탭바 바로 아래(검색창 위)에 생성
+(function(){const mt=document.getElementById('mtabs');if(mt&&!document.getElementById('hostRow')){const hr=document.createElement('div');hr.id='hostRow';mt.insertAdjacentElement('afterend',hr);}})();
 // 넛지 배너 문구를 Figma(101-5462)에 맞춰 정보성으로 교체
 function refreshNudge(){
   const d=document.querySelector('#nudge .d');
