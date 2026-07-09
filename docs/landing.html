@@ -134,12 +134,14 @@
   .vframe .bar i:nth-child(1){background:#FF5F57}.vframe .bar i:nth-child(2){background:#FEBC2E}.vframe .bar i:nth-child(3){background:#28C840}
   .vframe .bar .u{margin-left:12px;flex:1;height:22px;border-radius:7px;background:#fff;border:1px solid #E5E9ED;display:flex;align-items:center;padding:0 10px;font-size:12px;color:var(--ink-3);font-weight:600}
   .vframe video{display:block;width:100%;height:auto;background:#0d1117}
-  .vph{aspect-ratio:16/10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  .vframe.failed video{display:none}
+  .vph{display:none;aspect-ratio:16/10;flex-direction:column;align-items:center;justify-content:center;gap:14px;
     background:linear-gradient(160deg,#EAF2FF,#F7F9FB);color:#5B6B7C;padding:32px;text-align:center}
   .vph .ic{width:64px;height:64px;border-radius:18px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(21,63,120,.12)}
   .vph b{font-size:17px;color:#334155;font-weight:800}
   .vph small{font-size:14px;color:#7A8794;font-weight:500;line-height:1.6;max-width:420px}
   .vph code{background:#fff;border:1px solid #E1E7EC;border-radius:6px;padding:2px 7px;font-size:12.5px;color:#3182F6;font-weight:700}
+  .vframe.failed .vph{display:flex}
 
   footer{padding:30px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
     color:var(--ink-3);font-size:14px;font-weight:500;border-top:1px solid #EEF1F4}
@@ -227,15 +229,15 @@
     <h2>실제로 이렇게 동작해요</h2>
     <p class="sub">회의 정보 입력부터 참석자 선택, 시간 추천까지 — 딩동의 실제 흐름이에요.</p>
 
-    <div class="vframe">
+    <div class="vframe" id="vframe">
       <div class="bar"><i></i><i></i><i></i><span class="u">dingdong · 실제 동작 데모</span></div>
-      <video id="demoVid" autoplay muted loop playsinline preload="metadata" hidden>
-        <source src="assets/demo.mp4" type="video/mp4">
+      <video id="demoVid" autoplay muted loop playsinline preload="auto" poster="assets/demo-poster.jpg?v=3">
+        <source src="assets/demo.mp4?v=3" type="video/mp4">
       </video>
       <div class="vph" id="vph">
         <div class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M8 5.5v13l11-6.5-11-6.5Z" fill="#3182F6"/></svg></div>
         <b>딩동 실제 동작 데모</b>
-        <small>영상을 불러오는 중이에요…</small>
+        <small>영상을 재생할 수 없어요. 새로고침(⌘⇧R) 후에도 안 되면 알려주세요.</small>
       </div>
     </div>
   </div>
@@ -274,18 +276,19 @@
   // safety: never leave it un-played
   setTimeout(play, 1200);
 
-  // demo video: stay on the placeholder until the file actually loads,
-  // then swap the real (looping) video in — so it "just works" once added.
+  // demo video: poster shows immediately, video autoplays/loops.
+  // Only on a hard load error do we reveal the fallback placeholder.
   (function(){
-    var v = document.getElementById('demoVid'), ph = document.getElementById('vph');
-    if(!v) return;
-    function showVideo(){ if(v.hidden){ v.hidden = false; ph.hidden = true; v.play().catch(function(){}); } }
-    v.addEventListener('loadeddata', showVideo);
-    v.addEventListener('canplay', showVideo);
+    var v = document.getElementById('demoVid'), vf = document.getElementById('vframe');
+    if(!v || !vf) return;
+    function fail(){ vf.classList.add('failed'); }
+    v.addEventListener('error', fail, true);
+    var src = v.querySelector('source');
+    if(src) src.addEventListener('error', function(){ if(v.networkState === 3) fail(); }); // NETWORK_NO_SOURCE
+    v.addEventListener('canplay', function(){ v.play().catch(function(){}); });
     // pause when off-screen to save resources
     if('IntersectionObserver' in window){
       new IntersectionObserver(function(es){ es.forEach(function(e){
-        if(v.hidden) return;
         if(e.isIntersecting){ v.play().catch(function(){}); } else { v.pause(); }
       }); }, {threshold:.25}).observe(v);
     }
