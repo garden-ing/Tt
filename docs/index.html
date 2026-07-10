@@ -25,8 +25,9 @@
 
   /* ── HERO ── */
   .hero{
-    position:relative; width:100%; min-height:100vh; display:flex; align-items:center; justify-content:center;
-    padding:40px 0 20px; overflow:hidden;
+    position:relative; width:100%; min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:28px;
+    padding:56px 0 44px; overflow:hidden;
     background:
       linear-gradient(180deg, rgba(145,229,252,.7) 6%, rgb(255,255,255) 44%, rgba(145,204,252,.7) 86%, rgb(255,255,255) 100%);
   }
@@ -116,7 +117,7 @@
   .stage.play .card{opacity:1;transform:none;transition-delay:.1s}
 
   /* caption under hero */
-  .cap{position:absolute;left:0;right:0;bottom:26px;text-align:center;z-index:15;
+  .cap{position:relative;z-index:15;text-align:center;padding:0 20px;max-width:900px;
     font-size:15px;font-weight:600;color:rgba(29,74,121,.72);letter-spacing:-.01em;
     opacity:0;animation:fadeUp .8s ease 2.9s forwards}
   @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -255,8 +256,9 @@
     var avail = window.innerWidth - pad;
     var s = Math.min(1, avail / 1440);
     stage.style.transform = 'scale(' + s + ')';
-    // reserve correct height in the flex flow (stage is transform-origin top center)
-    stage.parentElement.style.height = (517 * s) + 'px';
+    // reserve the full visual height incl. the app card that bleeds below the
+    // 517px stage box (card bottom ≈ 596px), so the caption never overlaps it
+    stage.parentElement.style.height = Math.ceil(597 * s) + 'px';
   }
   fit();
   window.addEventListener('resize', fit, {passive:true});
