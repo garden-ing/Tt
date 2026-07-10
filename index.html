@@ -1975,6 +1975,8 @@ function injectFixes(){
     /* 회의 목적 질문 노출 + 목적을 한 줄(자체 행)로 */
     #app #purposeBlock{display:block!important;flex:1 1 100%!important;margin-top:16px!important;}
     #app #rangeRow{flex-wrap:wrap!important;}
+    /* 정기 회의: '반복 요일' 행도 '일정 범위'(#rangeRow)와 동일한 위 간격(10px)으로 (반복 주기가 숨겨지며 0이 되던 것 보정) */
+    body.is-repeat #repeatBlock .repeat-cycle-row + .optrow.optrow{margin-top:10px!important;}
     /* 정보 공유 목적일 때만 넛지 배너를 폼 아래에 노출 (참석자 선택 단계에선 숨김) */
     #app #nudge{display:none!important;margin-top:12px!important;}
     #app #nudge.on{display:block!important;}
