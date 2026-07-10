@@ -60,7 +60,7 @@
   /* connectors + dots (SVG overlay across full stage) */
   .wires{left:0;top:0;width:1440px;height:517px;overflow:visible;pointer-events:none}
   .wire{fill:none;stroke:#8FB4E6;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:2 7;
-    stroke-dashoffset:220; transition:stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1)}
+    stroke-dashoffset:220;opacity:0; transition:stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1), opacity .5s ease}
   .dot{fill:#fff;stroke:#3182F6;stroke-width:2.4;opacity:0;transform:scale(.2);transform-origin:center;transition:opacity .3s, transform .35s cubic-bezier(.2,1.4,.4,1)}
 
   /* pills */
@@ -97,21 +97,21 @@
   /* played state */
   .stage.play .pill{opacity:1;transform:none}
   .stage.play .pill.gcal{transform:none}
-  .stage.play .wire{stroke-dashoffset:0}
+  .stage.play .wire{stroke-dashoffset:0;opacity:1}
   .stage.play .dot{opacity:1;transform:scale(1)}
   .stage.play .try{opacity:1;transform:none}
   .stage.play .try .pulse::after{animation:ring 2.2s ease-out .3s infinite}
   @keyframes ring{0%{opacity:.5;transform:scale(.8)}70%{opacity:0;transform:scale(1.5)}100%{opacity:0}}
 
   /* delays: pills → wires → dots → button (~2.5s) */
-  .stage.play .pill.gcal{transition-delay:.15s}
-  .stage.play .pill.slack{transition-delay:.4s}
-  .stage.play .card{}
-  .stage.play .wire.w1{transition-delay:.9s}
-  .stage.play .wire.w2{transition-delay:1.25s}
-  .stage.play .dot.d1{transition-delay:1.7s}
-  .stage.play .dot.d2{transition-delay:2.0s}
-  .stage.play .try{transition-delay:2.5s}
+  /* 1) 서비스 화면(카드)이 먼저 → 2) 칩 → 3) 라인·점이 연결 → 4) 버튼 */
+  .stage.play .pill.gcal{transition-delay:.7s}
+  .stage.play .pill.slack{transition-delay:.9s}
+  .stage.play .dot.d1{transition-delay:1.25s}
+  .stage.play .dot.d2{transition-delay:1.45s}
+  .stage.play .wire.w1{transition-delay:1.3s}
+  .stage.play .wire.w2{transition-delay:1.5s}
+  .stage.play .try{transition-delay:2.4s}
 
   .card{opacity:0;transform:translateX(24px);transition:opacity .7s ease, transform .7s cubic-bezier(.2,1,.3,1)}
   .stage.play .card{opacity:1;transform:none;transition-delay:.1s}
